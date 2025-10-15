@@ -65,6 +65,17 @@ class RendezVous(Base):
     famille = relationship("Famille", back_populates="rendez_vous")
 
 
+class Disponibilite(Base):
+    """Disponibilités de l'animatrice"""
+    __tablename__ = "disponibilites"
+    id = Column(Integer, primary_key=True, index=True)
+    jour_semaine = Column(Integer, nullable=False)  # 0=Lundi, 6=Dimanche
+    heure_debut = Column(String, nullable=False)  # Format HH:MM
+    heure_fin = Column(String, nullable=False)  # Format HH:MM
+    type = Column(String, default="Disponible")  # Disponible ou Bloqué
+    actif = Column(Boolean, default=True)
+
+
 # Créer les tables
 Base.metadata.create_all(bind=engine)
 
@@ -87,6 +98,7 @@ def home():
             'rdv': 'GET /api/rdv/<famille_id>',
             'request': 'POST /api/rdv/request',
             'cancel': 'POST /api/rdv/<rdv_id>/cancel',
+            'disponibilites': 'GET /api/disponibilites',
             'health': 'GET /api/health'
         }
     })
@@ -242,6 +254,43 @@ def cancel_rdv(rdv_id):
     except Exception as e:
         db.rollback()
         return jsonify({'success': False, 'message': str(e)}), 500
+    
+    finally:
+        db.close()
+
+
+@app.route('/api/disponibilites', methods=['GET'])
+def get_disponibilites():
+    """Récupère les disponibilités de l'animatrice"""
+    db = SessionLocal()
+    try:
+        # Récupérer toutes les disponibilités actives de type "Disponible"
+        dispos = db.query(Disponibilite).filter(
+            Disponibilite.actif == True,
+            Disponibilite.type == "Disponible"
+        ).order_by(Disponibilite.jour_semaine, Disponibilite.heure_debut).all()
+        
+        disponibilites = []
+        for dispo in dispos:
+            disponibilites.append({
+                'id': dispo.id,
+                'jour_semaine': dispo.jour_semaine,
+                'heure_debut': dispo.heure_debut,
+                'heure_fin': dispo.heure_fin,
+                'type': dispo.type
+            })
+        
+        return jsonify({
+            'success': True,
+            'disponibilites': disponibilites
+        })
+    
+    except Exception as e:
+        print(f"❌ Erreur get_disponibilites: {e}")
+        return jsonify({
+            'success': False,
+            'message': str(e)
+        }), 500
     
     finally:
         db.close()
