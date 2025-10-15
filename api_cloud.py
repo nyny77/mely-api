@@ -261,7 +261,7 @@ def cancel_rdv(rdv_id):
 
 @app.route('/api/disponibilites', methods=['GET'])
 def get_disponibilites():
-    """Récupère les disponibilités de l'animatrice"""
+    """Récupère les disponibilités de l'animatrice avec les créneaux déjà demandés"""
     db = SessionLocal()
     try:
         # Récupérer toutes les disponibilités actives de type "Disponible"
@@ -269,6 +269,17 @@ def get_disponibilites():
             Disponibilite.actif == True,
             Disponibilite.type == "Disponible"
         ).order_by(Disponibilite.jour_semaine, Disponibilite.heure_debut).all()
+        
+        # Récupérer tous les RDV en attente ou confirmés
+        rdvs = db.query(RendezVous).filter(
+            RendezVous.statut.in_(['En attente', 'Planifié', 'Confirmé'])
+        ).all()
+        
+        # Créer un set des créneaux déjà pris (date + heure)
+        creneaux_pris = set()
+        for rdv in rdvs:
+            creneau_key = f"{rdv.date_rdv.strftime('%Y-%m-%d')}_{rdv.date_rdv.strftime('%H:%M')}"
+            creneaux_pris.add(creneau_key)
         
         disponibilites = []
         for dispo in dispos:
@@ -282,7 +293,8 @@ def get_disponibilites():
         
         return jsonify({
             'success': True,
-            'disponibilites': disponibilites
+            'disponibilites': disponibilites,
+            'creneaux_pris': list(creneaux_pris)
         })
     
     except Exception as e:
