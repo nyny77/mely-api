@@ -45,6 +45,7 @@ class Famille(Base):
     lien_parente = Column(String)
     email = Column(String, index=True)
     telephone = Column(String)
+    mot_de_passe = Column(String)
     actif = Column(Boolean, default=True)
     resident = relationship("Resident", back_populates="familles")
     rendez_vous = relationship("RendezVous", back_populates="famille")
@@ -129,9 +130,9 @@ def login():
         if not famille:
             return jsonify({'success': False, 'message': 'Email non trouvé'}), 401
         
-        # Vérifier le code (pour l'instant, on accepte n'importe quel code de 4 chiffres)
-        if len(code) != 4:
-            return jsonify({'success': False, 'message': 'Code invalide'}), 401
+        # Vérifier le mot de passe
+        if not code or code != famille.mot_de_passe:
+            return jsonify({'success': False, 'message': 'Mot de passe incorrect'}), 401
         
         # Récupérer le résident
         resident = db.query(Resident).get(famille.resident_id)
