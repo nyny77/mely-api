@@ -4,6 +4,7 @@ Version adaptée pour le déploiement (Railway/Heroku)
 """
 
 import os
+import secrets
 from datetime import datetime
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -200,6 +201,10 @@ def request_rdv():
         # Créer la date/heure
         date_rdv = datetime.strptime(f"{date_str} {time_str}", "%Y-%m-%d %H:%M")
         
+        # Générer un lien Jitsi unique
+        room_id = secrets.token_urlsafe(16)
+        jitsi_link = f"https://meet.jit.si/ehpad-crecy-{room_id}"
+        
         # Créer la demande de RDV avec statut "En attente"
         rdv = RendezVous(
             resident_id=resident_id,
@@ -208,6 +213,7 @@ def request_rdv():
             duree_minutes=duration,
             statut="En attente",
             notes_avant=message,
+            lien_jitsi=jitsi_link,
             rappel_envoye=False
         )
         
@@ -215,11 +221,13 @@ def request_rdv():
         db.commit()
         
         print(f"📝 Nouvelle demande de RDV créée : #{rdv.id}")
+        print(f"🔗 Lien Jitsi généré : {jitsi_link}")
         
         return jsonify({
             'success': True,
             'message': 'Demande envoyée avec succès',
-            'rdv_id': rdv.id
+            'rdv_id': rdv.id,
+            'jitsi_link': jitsi_link
         })
     
     except Exception as e:
@@ -303,6 +311,33 @@ def get_disponibilites():
             'success': False,
             'message': str(e)
         }), 500
+    
+    finally:
+        db.close()
+
+
+@app.route('/api/famille/<int:famille_id>/delete', methods=['POST'])
+def delete_famille(famille_id):
+    """Supprime (désactive) une famille"""
+    db = SessionLocal()
+    try:
+        famille = db.query(Famille).get(famille_id)
+        
+        if not famille:
+            return jsonify({'success': False, 'message': 'Famille non trouvée'}), 404
+        
+        # Soft delete : désactiver au lieu de supprimer
+        famille.actif = False
+        db.commit()
+        
+        print(f"🗑️ Famille #{famille_id} désactivée")
+        
+        return jsonify({'success': True, 'message': 'Famille supprimée'})
+    
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Erreur delete_famille: {e}")
+        return jsonify({'success': False, 'message': str(e)}), 500
     
     finally:
         db.close()
