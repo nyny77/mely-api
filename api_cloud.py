@@ -4,19 +4,22 @@ Version adaptée pour le déploiement (Railway/Heroku)
 """
 
 import os
+import sys
 import secrets
 from datetime import datetime
+from pathlib import Path
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean, Text, ForeignKey, func
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-# Configuration
-DATABASE_URL = os.getenv('DATABASE_URL', 'sqlite:///./mely_cloud.db')
-# Fix pour Heroku qui utilise postgres:// au lieu de postgresql://
-if DATABASE_URL.startswith('postgres://'):
-    DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+# Ajouter le répertoire parent au path pour importer portable_utils
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from portable_utils import get_portable_database_url
+
+# Configuration - Utiliser la base portable
+DATABASE_URL = get_portable_database_url()
 
 # SQLAlchemy setup
 engine = create_engine(DATABASE_URL)
@@ -85,7 +88,7 @@ Base.metadata.create_all(bind=engine)
 app = Flask(__name__)
 CORS(app)
 
-PORT = int(os.getenv('PORT', 8081))
+PORT = int(os.getenv('PORT', 5000))
 
 
 @app.route('/')
@@ -110,6 +113,30 @@ def home():
 def health():
     """Vérification de l'état du serveur"""
     return jsonify({'status': 'ok', 'message': 'API Mely opérationnelle'})
+
+
+@app.route('/api/residents', methods=['GET'])
+def get_residents():
+    """Récupère la liste des résidents actifs"""
+    db = SessionLocal()
+    try:
+        residents = db.query(Resident).filter(Resident.actif == True).order_by(Resident.nom, Resident.prenom).all()
+        return jsonify({
+            'success': True,
+            'residents': [
+                {
+                    'id': r.id,
+                    'nom': r.nom,
+                    'prenom': r.prenom,
+                    'chambre': r.chambre
+                }
+                for r in residents
+            ]
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
 
 
 @app.route('/api/login', methods=['POST'])
