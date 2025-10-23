@@ -196,6 +196,25 @@ def sync_resident():
         db.close()
 
 
+@app.route('/api/residents/<int:resident_id>/delete', methods=['POST'])
+def delete_resident(resident_id):
+    """Désactive un résident (soft delete)"""
+    db = SessionLocal()
+    try:
+        resident = db.query(Resident).get(resident_id)
+        if resident:
+            resident.actif = False
+            db.commit()
+            return jsonify({'success': True, 'message': 'Résident désactivé'})
+        else:
+            return jsonify({'success': False, 'error': 'Résident non trouvé'}), 404
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authentification d'une famille"""
