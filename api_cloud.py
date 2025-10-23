@@ -14,12 +14,23 @@ from sqlalchemy import create_engine, Column, Integer, String, DateTime, Boolean
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker, relationship
 
-# Ajouter le répertoire parent au path pour importer portable_utils
-sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from portable_utils import get_portable_database_url
-
-# Configuration - Utiliser la base portable
-DATABASE_URL = get_portable_database_url()
+# Configuration de la base de données
+# En production (Render), utiliser DATABASE_URL de l'environnement
+# En local, utiliser SQLite
+if os.getenv('DATABASE_URL'):
+    # Render PostgreSQL
+    DATABASE_URL = os.getenv('DATABASE_URL')
+    # Fix pour Render qui utilise postgres:// au lieu de postgresql://
+    if DATABASE_URL.startswith('postgres://'):
+        DATABASE_URL = DATABASE_URL.replace('postgres://', 'postgresql://', 1)
+else:
+    # Local SQLite
+    try:
+        sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+        from portable_utils import get_portable_database_url
+        DATABASE_URL = get_portable_database_url()
+    except ImportError:
+        DATABASE_URL = 'sqlite:///./mely.db'
 
 # SQLAlchemy setup
 engine = create_engine(DATABASE_URL)
