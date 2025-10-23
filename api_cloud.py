@@ -150,6 +150,52 @@ def get_residents():
         db.close()
 
 
+@app.route('/api/residents/sync', methods=['POST'])
+def sync_resident():
+    """Ajoute ou met à jour un résident (pour la synchronisation)"""
+    data = request.json
+    db = SessionLocal()
+    try:
+        # Vérifier si le résident existe déjà
+        resident = db.query(Resident).filter(
+            Resident.nom == data.get('nom'),
+            Resident.prenom == data.get('prenom')
+        ).first()
+        
+        if resident:
+            # Mettre à jour
+            resident.chambre = data.get('chambre')
+            resident.actif = data.get('actif', True)
+            action = 'updated'
+        else:
+            # Créer nouveau
+            resident = Resident(
+                nom=data.get('nom'),
+                prenom=data.get('prenom'),
+                chambre=data.get('chambre'),
+                actif=data.get('actif', True)
+            )
+            db.add(resident)
+            action = 'created'
+        
+        db.commit()
+        return jsonify({
+            'success': True,
+            'action': action,
+            'resident': {
+                'id': resident.id,
+                'nom': resident.nom,
+                'prenom': resident.prenom,
+                'chambre': resident.chambre
+            }
+        })
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authentification d'une famille"""
