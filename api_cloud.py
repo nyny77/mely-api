@@ -492,7 +492,7 @@ def delete_famille(famille_id):
 def migrate_add_code_acces():
     """Route admin pour ajouter la colonne code_acces"""
     try:
-        with engine.connect() as conn:
+        with engine.begin() as conn:  # begin() au lieu de connect() pour auto-commit
             # Vérifier si la colonne existe déjà
             result = conn.execute(text("""
                 SELECT column_name 
@@ -508,7 +508,6 @@ def migrate_add_code_acces():
             else:
                 # Ajouter la colonne
                 conn.execute(text("ALTER TABLE residents ADD COLUMN code_acces VARCHAR UNIQUE"))
-                conn.commit()
                 return jsonify({
                     'success': True,
                     'message': 'Colonne code_acces ajoutée avec succès'
