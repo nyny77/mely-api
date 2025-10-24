@@ -588,5 +588,33 @@ def fix_sequences():
         }), 500
 
 
+@app.route('/api/admin/clear-familles', methods=['POST'])
+def clear_familles():
+    """Route admin pour supprimer toutes les familles (DANGER!)"""
+    db = SessionLocal()
+    try:
+        # Compter les familles avant suppression
+        count = db.query(Famille).count()
+        
+        # Supprimer toutes les familles
+        db.query(Famille).delete()
+        db.commit()
+        
+        print(f"🗑️ {count} famille(s) supprimée(s)")
+        
+        return jsonify({
+            'success': True,
+            'message': f'{count} famille(s) supprimée(s)'
+        })
+    except Exception as e:
+        db.rollback()
+        return jsonify({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        }), 500
+    finally:
+        db.close()
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
