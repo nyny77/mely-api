@@ -488,5 +488,37 @@ def delete_famille(famille_id):
         db.close()
 
 
+@app.route('/api/admin/migrate-add-code-acces', methods=['POST'])
+def migrate_add_code_acces():
+    """Route admin pour ajouter la colonne code_acces"""
+    try:
+        with engine.connect() as conn:
+            # Vérifier si la colonne existe déjà
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='residents' AND column_name='code_acces'
+            """))
+            
+            if result.fetchone():
+                return jsonify({
+                    'success': True,
+                    'message': 'La colonne code_acces existe déjà'
+                })
+            else:
+                # Ajouter la colonne
+                conn.execute(text("ALTER TABLE residents ADD COLUMN code_acces VARCHAR UNIQUE"))
+                conn.commit()
+                return jsonify({
+                    'success': True,
+                    'message': 'Colonne code_acces ajoutée avec succès'
+                })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        }), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
