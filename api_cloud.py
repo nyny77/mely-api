@@ -45,6 +45,7 @@ class Resident(Base):
     nom = Column(String, nullable=False)
     prenom = Column(String, nullable=False)
     chambre = Column(String)
+    code_acces = Column(String, unique=True, index=True)
     actif = Column(Boolean, default=True)
     familles = relationship("Famille", back_populates="resident")
     rendez_vous = relationship("RendezVous", back_populates="resident")
@@ -144,6 +145,44 @@ def get_residents():
                 for r in residents
             ]
         })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
+@app.route('/api/residents/verify-code', methods=['POST'])
+def verify_code():
+    """Vérifie un code d'accès et retourne les infos du résident"""
+    data = request.json
+    code = data.get('code', '').strip().upper()
+    
+    if not code:
+        return jsonify({'success': False, 'error': 'Code requis'}), 400
+    
+    db = SessionLocal()
+    try:
+        # Chercher le résident avec ce code
+        resident = db.query(Resident).filter(
+            Resident.code_acces == code,
+            Resident.actif == True
+        ).first()
+        
+        if resident:
+            return jsonify({
+                'success': True,
+                'resident': {
+                    'id': resident.id,
+                    'nom': resident.nom,
+                    'prenom': resident.prenom,
+                    'chambre': resident.chambre
+                }
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Code invalide ou résident inactif'
+            }), 404
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
     finally:
