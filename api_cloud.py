@@ -256,6 +256,49 @@ def delete_resident(resident_id):
         db.close()
 
 
+@app.route('/api/register', methods=['POST'])
+def register():
+    """Inscription d'une nouvelle famille"""
+    data = request.json
+    
+    db = SessionLocal()
+    try:
+        # Vérifier si l'email existe déjà
+        existing = db.query(Famille).filter(Famille.email == data.get('email')).first()
+        if existing:
+            return jsonify({'success': False, 'message': 'Cet email est déjà utilisé'}), 400
+        
+        # Créer la nouvelle famille
+        nouvelle_famille = Famille(
+            resident_id=data.get('resident_id'),
+            nom=data.get('nom'),
+            prenom=data.get('prenom'),
+            lien_parente=data.get('lien_parente'),
+            email=data.get('email'),
+            telephone=data.get('telephone'),
+            mot_de_passe=data.get('mot_de_passe'),
+            actif=False  # Désactivé par défaut, en attente de validation
+        )
+        
+        db.add(nouvelle_famille)
+        db.commit()
+        
+        print(f"✅ Nouvelle inscription : {nouvelle_famille.prenom} {nouvelle_famille.nom} ({nouvelle_famille.email})")
+        
+        return jsonify({
+            'success': True,
+            'message': 'Inscription réussie ! Votre compte sera activé par l\'équipe de l\'EHPAD.'
+        })
+    
+    except Exception as e:
+        db.rollback()
+        print(f"❌ Erreur inscription : {e}")
+        return jsonify({'success': False, 'message': f'Erreur: {str(e)}'}), 500
+    
+    finally:
+        db.close()
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authentification d'une famille"""
