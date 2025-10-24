@@ -593,21 +593,28 @@ def clear_familles():
     """Route admin pour supprimer toutes les familles (DANGER!)"""
     db = SessionLocal()
     try:
-        # Compter les familles avant suppression
-        count = db.query(Famille).count()
+        # Compter avant suppression
+        count_familles = db.query(Famille).count()
+        count_rdv = db.query(RendezVous).count()
         
-        # Supprimer toutes les familles
+        # Supprimer d'abord tous les rendez-vous
+        db.query(RendezVous).delete()
+        
+        # Puis supprimer toutes les familles
         db.query(Famille).delete()
+        
         db.commit()
         
-        print(f"🗑️ {count} famille(s) supprimée(s)")
+        print(f"🗑️ {count_rdv} rendez-vous supprimé(s)")
+        print(f"🗑️ {count_familles} famille(s) supprimée(s)")
         
         return jsonify({
             'success': True,
-            'message': f'{count} famille(s) supprimée(s)'
+            'message': f'{count_familles} famille(s) et {count_rdv} rendez-vous supprimé(s)'
         })
     except Exception as e:
         db.rollback()
+        print(f"❌ Erreur clear_familles: {e}")
         return jsonify({
             'success': False,
             'message': f'Erreur: {str(e)}'
