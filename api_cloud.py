@@ -562,5 +562,31 @@ def migrate_add_code_acces():
         }), 500
 
 
+@app.route('/api/admin/fix-sequences', methods=['POST'])
+def fix_sequences():
+    """Route admin pour réinitialiser les séquences PostgreSQL"""
+    try:
+        with engine.begin() as conn:
+            # Réinitialiser la séquence familles
+            conn.execute(text("""
+                SELECT setval('familles_id_seq', COALESCE((SELECT MAX(id) FROM familles), 0) + 1, false);
+            """))
+            
+            # Réinitialiser la séquence residents
+            conn.execute(text("""
+                SELECT setval('residents_id_seq', COALESCE((SELECT MAX(id) FROM residents), 0) + 1, false);
+            """))
+            
+            return jsonify({
+                'success': True,
+                'message': 'Séquences réinitialisées avec succès'
+            })
+    except Exception as e:
+        return jsonify({
+            'success': False,
+            'message': f'Erreur: {str(e)}'
+        }), 500
+
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
