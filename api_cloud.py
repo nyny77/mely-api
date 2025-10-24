@@ -299,6 +299,39 @@ def register():
         db.close()
 
 
+@app.route('/api/familles', methods=['GET'])
+def get_familles():
+    """Récupère toutes les familles (pour synchronisation)"""
+    db = SessionLocal()
+    try:
+        familles = db.query(Famille).all()
+        
+        familles_list = []
+        for famille in familles:
+            familles_list.append({
+                'id': famille.id,
+                'resident_id': famille.resident_id,
+                'nom': famille.nom,
+                'prenom': famille.prenom,
+                'lien_parente': famille.lien_parente,
+                'email': famille.email,
+                'telephone': famille.telephone,
+                'mot_de_passe': famille.mot_de_passe,
+                'actif': famille.actif
+            })
+        
+        return jsonify({
+            'success': True,
+            'familles': familles_list
+        })
+    
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    
+    finally:
+        db.close()
+
+
 @app.route('/api/login', methods=['POST'])
 def login():
     """Authentification d'une famille"""
