@@ -204,6 +204,7 @@ def sync_resident():
         if resident:
             # Mettre à jour
             resident.chambre = data.get('chambre')
+            resident.code_acces = data.get('code_acces')
             resident.actif = data.get('actif', True)
             action = 'updated'
         else:
@@ -212,6 +213,7 @@ def sync_resident():
                 nom=data.get('nom'),
                 prenom=data.get('prenom'),
                 chambre=data.get('chambre'),
+                code_acces=data.get('code_acces'),
                 actif=data.get('actif', True)
             )
             db.add(resident)
