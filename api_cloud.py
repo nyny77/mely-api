@@ -648,6 +648,42 @@ def fix_sequences():
         }), 500
 
 
+@app.route('/api/familles/delete-by-email', methods=['POST'])
+def delete_famille_by_email():
+    """Supprime une famille par son email"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email requis'}), 400
+    
+    db = SessionLocal()
+    try:
+        # Trouver la famille
+        famille = db.query(Famille).filter(func.lower(Famille.email) == email).first()
+        
+        if not famille:
+            return jsonify({'success': False, 'error': 'Famille non trouvée'}), 404
+        
+        # Supprimer les rendez-vous associés
+        db.query(RendezVous).filter(RendezVous.famille_id == famille.id).delete()
+        
+        # Supprimer la famille
+        db.delete(famille)
+        db.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Famille {famille.prenom} {famille.nom} supprimée'
+        })
+    
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/admin/clear-familles', methods=['POST'])
 def clear_familles():
     """Route admin pour supprimer toutes les familles (DANGER!)"""
