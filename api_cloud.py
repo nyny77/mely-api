@@ -684,6 +684,39 @@ def delete_famille_by_email():
         db.close()
 
 
+@app.route('/api/familles/activate', methods=['POST'])
+def activate_famille():
+    """Active une famille par son email"""
+    data = request.json
+    email = data.get('email', '').strip().lower()
+    
+    if not email:
+        return jsonify({'success': False, 'error': 'Email requis'}), 400
+    
+    db = SessionLocal()
+    try:
+        # Trouver la famille
+        famille = db.query(Famille).filter(func.lower(Famille.email) == email).first()
+        
+        if not famille:
+            return jsonify({'success': False, 'error': 'Famille non trouvée'}), 404
+        
+        # Activer la famille
+        famille.actif = True
+        db.commit()
+        
+        return jsonify({
+            'success': True,
+            'message': f'Famille {famille.prenom} {famille.nom} activée'
+        })
+    
+    except Exception as e:
+        db.rollback()
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/admin/clear-familles', methods=['POST'])
 def clear_familles():
     """Route admin pour supprimer toutes les familles (DANGER!)"""
