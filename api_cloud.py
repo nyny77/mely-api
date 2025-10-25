@@ -151,6 +151,33 @@ def get_residents():
         db.close()
 
 
+@app.route('/api/residents/<int:resident_id>', methods=['GET'])
+def get_resident(resident_id):
+    """Récupère un résident par son ID"""
+    db = SessionLocal()
+    try:
+        resident = db.query(Resident).filter(Resident.id == resident_id).first()
+        
+        if not resident:
+            return jsonify({'success': False, 'error': 'Résident non trouvé'}), 404
+        
+        return jsonify({
+            'success': True,
+            'resident': {
+                'id': resident.id,
+                'nom': resident.nom,
+                'prenom': resident.prenom,
+                'chambre': resident.chambre,
+                'code_acces': resident.code_acces,
+                'actif': resident.actif
+            }
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+    finally:
+        db.close()
+
+
 @app.route('/api/residents/verify-code', methods=['POST'])
 def verify_code():
     """Vérifie un code d'accès et retourne les infos du résident"""
