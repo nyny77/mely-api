@@ -656,5 +656,31 @@ def clear_familles():
         db.close()
 
 
+# Migration automatique au démarrage
+def run_migrations():
+    """Exécute les migrations nécessaires"""
+    try:
+        with engine.connect() as conn:
+            # Vérifier si la colonne code_acces existe
+            result = conn.execute(text("""
+                SELECT column_name 
+                FROM information_schema.columns 
+                WHERE table_name='residents' AND column_name='code_acces'
+            """))
+            
+            if result.rowcount == 0:
+                # Ajouter la colonne
+                conn.execute(text("ALTER TABLE residents ADD COLUMN code_acces VARCHAR(50)"))
+                conn.commit()
+                print("✅ Migration: Colonne code_acces ajoutée")
+            else:
+                print("ℹ️ Migration: Colonne code_acces déjà présente")
+                
+    except Exception as e:
+        print(f"⚠️ Migration ignorée: {e}")
+
+# Exécuter les migrations au démarrage
+run_migrations()
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=PORT, debug=False)
